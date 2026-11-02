@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ParkEase | Parking Details</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <nav>
+        <h2>ParkEase</h2>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/profile">My Profile</a>
+
+        <form action="/logout" method="POST">
+            <button type="submit">Logout</button>
+        </form>
+    </nav>
+
+    <main>
+        <h1><%= lot.name %></h1>
+
+        <p>Location: <%= lot.location %></p>
+
+        <p>Total facility capacity: <%= lot.capacity %></p>
+
+        <h2>Registered Parking Bays</h2>
+
+        <% if (spaces.length === 0) { %>
+            <p>No individual bays have been registered yet.</p>
+        <% } %>
+
+        <% spaces.forEach(space => { %>
+            <div class="parking-card">
+                <h3>Bay <%= space.space_number %></h3>
+                <p>Registered parking bay</p>
+            </div>
+        <% }) %>
+
+        <a href="/dashboard">Back to Dashboard</a>
+    </main>
+
+</body>
+</html>
