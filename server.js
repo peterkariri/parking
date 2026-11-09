@@ -1,6 +1,6 @@
 const express=require("express")
-const app=express()
-const mysql=require("mysql2")
+const mysql=require("mysql2/promise")
+const app=express();
 
 const bcrypt=require("bcrypt") ///for encrypting req.body to be sent to database 
 
@@ -39,7 +39,7 @@ app.use(session({
     //cookie 
     cookie:{
         httpOnly:true,
-        maxAge:1000 * 60 * 60 //1 OUR IN MILLLLISECOND 
+        maxAge:1000 * 60 * 60 //1 hOUR IN MILLLLISECOND 
     }
 }))
 
@@ -61,6 +61,11 @@ const db=mysql.createPool({
  
 })
 
+app.use((req,res,next)=>{ //allows the user to be availabel on every view file
+    res.locals.user=req.session.user
+    next() //termination of a process once it has been completed and go to the next 
+})
+
 //testing if my database is connected 
 //to test if the connection is active we use the getConnection method/function 
 async function connectionTest(){
@@ -68,6 +73,7 @@ try {
      let connection= await db.getConnection();  //trigger to see if my db is ative 
 
     console.log("database connected successfully");
+    connection.release()// gives the connectin back to pool
 
 
 } catch (error) {
@@ -89,9 +95,55 @@ app.get("/",(req,res)=>{
 app.get("/login",(req,res)=>{
     res.render("login")
 })
-
+ //sign up to get the sign up page 
 app.get("/signup",(req,res)=>{
     res.render("signup")
+})
+//send user infomratin to the database(req.body) and also countercheck if user {using control strucutures}
+// is registered //validation (password//strength of password )
+//email validity //has the user ever logged in 
+//hash the password before storing it 
+app.post("/signup",(req,res)=>{
+    let{fullname,email,phone,password,confirm_password} =req.body //allow me to get this information from the user via https(post)
+    //CHECKING FOR NULL VALUES >>EMPTY VALUES 
+    if(!fullname || !email || !password){ ///form validation
+      return res.render("signup",{error:"Please fill  in all the required fields"})
+    }
+    if(password.length<8){
+              return res.render("signup",{error:"password is not strong"})
+
+    }
+    //validate the two passwords(the pasword and the confrim password )
+
+    if(password!==confirm_password){
+                     return res.render("signup",{error:"password does not match"})
+
+    }
+    //we interact with the database  //this hanldes duplicates and email validatin
+    try {
+        let[rows]= db.query("SELECT id FROM users WHERE email= ? ",[email])
+        if(rows.length >0){
+                        return res.render("signup",{error:" Email already in use register a new email "})
+
+        }
+        //hash th epassword for storage 
+
+        const hashedPassword=bcrypt.hash(password,10) //makes sure the password ben sent to database is not in strings
+
+        //push to database 
+
+        db.query(
+            "INSERT INTO users (fullname,email,phone,password) VALUES(?,?,?,?)",[fullname,email,phone,password]
+        )
+        res.redirect("/login")
+
+
+    } catch (error) {
+             return res.render("signup",{error:" Somethong went wrong try signing up again "})
+
+    }
+    console.log(req.body);
+    
 })
 
 app.get("/dashboard",(req,res)=>{
